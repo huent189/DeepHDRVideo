@@ -6,14 +6,53 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
-from deform_conv import ModulatedDeformConvPack as DCN
+import torchvision.ops
+from torch.nn.modules.utils import _pair
+from torchvision.ops import DeformConv2d
+# from deform_conv import ModulatedDeformConvPack as DCN
 from collections import OrderedDict
+import logging
+logger = logging.getLogger('base')
 #from models.archs_edvr.dcn.deform_conv import ModulatedDeformConvPack as DCN
 #try:
 #    from models.archs_edvr.dcn.deform_conv import ModulatedDeformConvPack as DCN
 #except ImportError:
 #    raise ImportError('Failed to import DCNv2 module.')
+class DCN(nn.Module):
+    def __init__(self,
+                 in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1,
+                 groups=1, deformable_groups=1, bias=True, extra_offset_mask=False):
 
+        super().__init__()
+        self.extra_offset_mask = extra_offset_mask
+        kernel_size = _pair(kernel_size)
+        self.conv_offset_mask = nn.Conv2d(
+            in_channels,
+            deformable_groups * 3 * kernel_size[0] * kernel_size[1],
+            kernel_size=kernel_size, stride=stride, padding=padding,
+            bias=True)
+        self.init_offset()
+        self.deform_conv2d = DeformConv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,bias)
+    def init_offset(self):
+        self.conv_offset_mask.weight.data.zero_()
+        self.conv_offset_mask.bias.data.zero_()
+    def forward(self, x):
+        if self.extra_offset_mask:
+            # x = [input, features]
+            out = self.conv_offset_mask(x[1])
+            x = x[0]
+        else:
+            out = self.conv_offset_mask(x)
+        o1, o2, mask = torch.chunk(out, 3, dim=1)
+        offset = torch.cat((o1, o2), dim=1)
+        mask = torch.sigmoid(mask)
+
+        offset_mean = torch.mean(torch.abs(offset))
+        if offset_mean > 100:
+            logger.warning('Offset mean is {}, larger than 100.'.format(offset_mean))
+        x = self.deform_conv2d(x, offset, mask)
+        return x
+    
 def initialize_weights(net_l, scale=1):
     if not isinstance(net_l, list):
         net_l = [net_l]
