@@ -110,7 +110,7 @@ def read_hdr(filename, use_cv2=True):
     elif ext == '.hdr':
         hdr = cv2.imread(filename, -1)
     elif ext == '.npy':
-        hdr = np.load(filenmae) 
+        hdr = np.load(filename) 
     else:
         raise_not_defined()
     return hdr

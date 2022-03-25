@@ -28,6 +28,7 @@ class hdr3E_flow_model(hdr2E_model):
 
         parser.add_argument('--cmid', default=256, type=int)
         parser.add_argument('--up_fnet', default=True, action='store_false')
+        parser.add_argument('--fp16', default=True, action='store_false')
         parser.add_argument('--fnet_init', default='xavier')
         parser.add_argument('--tone_low', default=False, action='store_true')
         parser.add_argument('--tone_ref', default=True, action='store_false')
@@ -63,6 +64,9 @@ class hdr3E_flow_model(hdr2E_model):
 
         self.load_checkpoint(log)
         self.backward_grid = {}
+        self.fp16 = False
+        if self.fp16:
+            self.scaler = torch.cuda.amp.GradScaler()
 
     def get_io_ch_nums(self, opt):
         c_in = 15
@@ -215,7 +219,7 @@ class hdr3E_flow_model(hdr2E_model):
         else: # 0 < i < len(expos)-1
             h_idx = (expos[i] > expos[i-1]).view(-1) & (expos[i] > expos[i+1]).view(-1)
             l_idx = (expos[i] < expos[i-1]).view(-1) & (expos[i] < expos[i+1]).view(-1)
-        m_idx = 1 - h_idx - l_idx
+        m_idx = ~(h_idx | l_idx)
         return h_idx, m_idx, l_idx
 
     def get_out_mask_method(self):
@@ -224,8 +228,7 @@ class hdr3E_flow_model(hdr2E_model):
         else:
             get_out_mask_method = mutils.pt_ldr_to_3exps_1c_mask
         return get_out_mask_method
-
-    def forward(self, split='train'):
+    def forward_epoch(self, split):
         self.split = split
         self.prepare_inputs(self.data) 
         fnet_in = self.prepare_fnet_input()
@@ -246,7 +249,13 @@ class hdr3E_flow_model(hdr2E_model):
             self.cached_data = self.data
         self.loss_terms = None
         return self.pred
-
+    def forward(self, split='train'):
+        if self.is_train and self.fp16:
+            with  torch.cuda.amp.autocast():
+                return self.forward_epoch(split)
+        else:
+            return self.forward_epoch(split)
+        
     def prepare_mnet_inputs(self, opt, data, fpred, idxs):
         p2, p1, ci, n1, n2 = idxs
         backward_grid = self.backward_grid
@@ -295,7 +304,7 @@ class hdr3E_flow_model(hdr2E_model):
         fnet_in += [self.data['ldrs'][1], self.data['c2p1_adjs'][self.hdr_mid], self.data['ldrs'][4]]
         return fnet_in
 
-    def optimize_weights(self):
+    def compute_loss(self):
         self.loss_terms = {}
         data, pred = self.data, self.pred
 
@@ -308,12 +317,17 @@ class hdr3E_flow_model(hdr2E_model):
         else:
             hdr_loss = self.opt['hdr_w'] * self.hdr_crit(self.pred['log_hdr'], self.data['log_hdrs'][self.hdr_mid])
             self.loss_terms['hdr_loss'] = hdr_loss.item()
-
-        self.loss = hdr_loss
-
+            self.loss = hdr_loss
+    def optimize_weights(self):
+        self.compute_loss()
         self.optimizer.zero_grad()
-        self.loss.backward()
-        self.optimizer.step()
+        if self.fp16:
+            self.scaler.scale(self.loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+        else:
+            self.loss.backward()
+            self.optimizer.step()
    
     def _prepare_records(self, data, pred, key=''):
         records = OrderedDict()
