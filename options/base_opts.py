@@ -144,10 +144,13 @@ class BaseOpts(object):
 
         # Update dataset-specific parser options
         if self.is_train:
-            data_option_setter = datasets.get_option_setter(args.dataset)
+            data_option_setter = datasets.get_option_setter(args.train_dataset)
+            parser = data_option_setter(self.parser, self.is_train)
+            data_option_setter = datasets.get_option_setter(args.val_dataset)
+            parser = data_option_setter(self.parser, self.is_train)
         else:
             data_option_setter = datasets.get_option_setter(args.benchmark)
-        parser = data_option_setter(self.parser, self.is_train)
+            parser = data_option_setter(self.parser, self.is_train)
         self.parser = parser
 
         self.str_keys += str_keys

@@ -199,7 +199,7 @@ class tog13_online_align_dataset(data.Dataset):
         #    for k in item.keys():
         #        item[k] = hdr_transforms.imgsize_to_factor_of_k(item[k], self.args.factor_of_k)
 
-        for k in item.keys(): 
+        for k in item.keys():
             item[k] = hdr_transforms.array_to_tensor(item[k])
 
         mid_img_path = img_paths[len(img_paths)//2]

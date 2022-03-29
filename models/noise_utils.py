@@ -15,7 +15,7 @@ def pt_tone_ref_tone_augment(ldr, d=0.1):
 
 def pt_tone_ref_add_gaussian_noise(img, stdv1=1e-3, stdv2=1e-2, max_thres=0.08, scale=True):
     stdv = torch.rand(img.shape, device=img.device) * (stdv2 - stdv1) + stdv1
-    noise = torch.normal(0, stdv)
+    noise = torch.normal(torch.zeros_like(stdv), stdv)
     out = torch.pow(img.clamp(0, 1), 2.2) # undo gamma
     out = (out + noise).clamp(0, 1)
     out = torch.pow(out, 1/2.2)

@@ -154,3 +154,5 @@ data/
 data
 matlab/results
 doc/
+logdir/
+pretrain/

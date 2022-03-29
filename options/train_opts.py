@@ -8,8 +8,10 @@ class TrainOpts(BaseOpts):
     def initialize(self):
         BaseOpts.initialize(self)
         #### Trainining Dataset ####
-        self.parser.add_argument('--dataset', default='syn_vimeo_dataset')
+        self.parser.add_argument('--train_dataset', default='syn_vimeo_dataset')
+        self.parser.add_argument('--val_dataset', default='syn_vimeo_dataset')
         self.parser.add_argument('--data_dir', default='data/vimeo_septuplet', help='For syn_vimeo_dataset')
+        self.parser.add_argument('--val_data_dir', default='data/vimeo_septuplet', help='For syn_vimeo_dataset')
         self.parser.add_argument('--dataset2', default='syn_hdr_dataset')
         self.parser.add_argument('--hdr_data_dir1', default='data/Synthetic_Train_Data_LiU_HDRv', help='For syn_hdr_dataset')
         self.parser.add_argument('--hdr_data_dir2', default='data/Synthetic_Train_Data_HdM-HDR-2014', help='For syn_hdr_dataset') 

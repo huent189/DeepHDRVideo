@@ -84,7 +84,7 @@ class Logger(object):
         else:
             if args.debug:
                 dir_name = 'DEBUG/' + dir_name
-            log_root = os.path.join(args.save_root, args.dataset, args.item, dir_name)
+            log_root = os.path.join(args.save_root, args.train_dataset, args.item, dir_name)
             args.log_dir = os.path.join(log_root)
             args.cp_dir  = os.path.join(log_root, 'checkpointdir')
             utils.make_files([args.log_dir, args.cp_dir])

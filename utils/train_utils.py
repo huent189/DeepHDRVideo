@@ -35,9 +35,9 @@ def train(args, log, loader, model, epoch, recorder):
             recorder.update_iter('train', records.keys(), records.values())
             nrow = min(visuals[0].shape[0], 32)
 
-            if epoch == 1 or iters % (2 * args.train_save) == 0:
-                if not args.disable_save:
-                    log.save_img_results(visuals, 'train', epoch, iters, nrow=nrow)
+            # if epoch == 1 or iters % (2 * args.train_save) == 0:
+            if not args.disable_save:
+                log.save_img_results(visuals, 'train', epoch, iters, nrow=nrow)
 
             log.plot_curves(recorder, 'train', epoch=epoch, intv=args.train_disp)
 

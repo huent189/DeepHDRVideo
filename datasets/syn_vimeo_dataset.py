@@ -20,7 +20,7 @@ class syn_vimeo_dataset(data.Dataset):
         return parser
 
     def __init__(self, args, split='train'):
-        self.root = args.data_dir
+        self.root = args.val_data_dir
         self.split = split
         self.args = args
         self.nframes = args.nframes

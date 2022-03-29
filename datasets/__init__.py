@@ -11,11 +11,13 @@ def get_option_setter(dataset_name):
     return dataset_class.modify_commandline_options
 
 def custom_dataloader(args, log):
-    log.print_write("=> fetching img pairs in %s" % (args.dataset))
-    datasets = __import__('datasets.' + args.dataset)
-    dataset_file = getattr(datasets, args.dataset)
-    train_set = getattr(dataset_file, args.dataset)(args, 'train')
-    val_set   = getattr(dataset_file, args.dataset)(args, 'val')
+    log.print_write("=> fetching img pairs in %s" % (args.train_dataset))
+    datasets = __import__('datasets.' + args.train_dataset)
+    dataset_file = getattr(datasets, args.train_dataset)
+    train_set = getattr(dataset_file, args.train_dataset)(args, 'train')
+    datasets = __import__('datasets.' + args.val_dataset)
+    dataset_file = getattr(datasets, args.val_dataset)
+    val_set   = getattr(dataset_file, args.val_dataset)(args, 'val')
 
     if args.concat:
         log.print_write('****** Using cocnat data ******')
