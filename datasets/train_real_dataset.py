@@ -46,10 +46,10 @@ class train_real_dataset(tog13_online_align_dataset):
         sample_len = self.nframes * 2 - 1
         self.total_img_num = 0
         for i in range(len(scene_list)):
-            img_dir = os.path.join(self.root, scene_list[i])
-            img_list = glob.glob(os.path.join(img_dir, '*.jpg'))
+            img_dir = scene_list[i]
+            img_list = glob.glob(os.path.join(img_dir, '*.tif'))
             img_list.sort()
-            img_list =[os.path.join(img_dir, img_path) for img_path in img_list]
+            #img_list =[os.path.join(img_dir, img_path) for img_path in img_list]
             e_list = self._load_exposure_list(os.path.join(img_dir, 'Exposures.txt'), img_num=len(img_list))
             self.expos_list += [e_list[i:i+sample_len] for i in range(len(e_list) - sample_len)]
             self.img_list += [img_list[i:i+sample_len] for i in range(len(img_list) - sample_len)]

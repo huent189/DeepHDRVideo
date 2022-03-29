@@ -90,6 +90,7 @@ def print_image(img, name, fmt='%.4f'):
 ###### Image Loading ######
 def read_16bit_tif(img_name, crf=None):
     img = cv2.imread(img_name, -1) #/ 65535.0 # normalize to [0, 1]
+    assert img is not None, img_name
     img = img[:, :, [2, 1, 0]] # BGR to RGB
     #print('before', img.max(), img.mean(), img.min())
     if crf is not None:
