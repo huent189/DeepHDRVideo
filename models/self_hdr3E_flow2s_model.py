@@ -37,7 +37,7 @@ class self_hdr3E_flow2s_model(hdr3E_flow_model):
         parser.add_argument('--m1_mo', default=True, action='store_false')
         parser.add_argument('--s2_inexpm', default=False, action='store_true') # second stage
         parser.add_argument('--s2_inldr', default=False, action='store_true') # second stage
-        parser.add_argument('--tone_low', default=True, action='store_false')
+        parser.add_argument('--tone_low', default=False, action='store_true')
         parser.add_argument('--tone_ref', default=False, action='store_true')
 
         if is_train:
@@ -335,22 +335,24 @@ class self_hdr3E_flow2s_model(hdr3E_flow_model):
         ldr_refs = self.stage2_ref['ldr']
         ev_refs = self.stage2_ref['ev']
         hdr_loss = 0
+        vgg_loss = 0
+        loss_terms = {}
         for ref, ev in zip(ldr_refs, ev_refs):
             # norm = ev ** (1/2.2)
             pred = (pred_hdr * ev).clip(1e-8, 1) ** (1/ 2.2)
             tmp =  self.ldr_crit(ref, pred) * weight * self.opt['hdr_w']
             hdr_loss = hdr_loss + tmp
-            # if self.opt['vgg_l'] and vgg:
-            #     vgg_l, vgg_l_term = self.vgg_crit(pred / norm, ref / norm)
-            #     tmp =  weight * self.opt['vgg_w'] * vgg_l
-            #     hdr_loss = hdr_loss + tmp
-            #     for k in vgg_l_term: 
-            #         if k not in loss_terms:
-            #             loss_terms[k] = vgg_l_term[k]
-            #         else:
-            #             loss_terms[k] += vgg_l_term[k]
-        # loss_terms = {'hdr_loss': hdr_loss.item()}
-        return hdr_loss
+            if self.opt['vgg_l'] and vgg:
+                vgg_l, vgg_l_term = self.vgg_crit(pred, ref)
+                tmp =  weight * self.opt['vgg_w'] * vgg_l
+                vgg_loss = vgg_loss + tmp
+                for k in vgg_l_term: 
+                    if k not in loss_terms:
+                        loss_terms[k] = vgg_l_term[k]
+                    else:
+                        loss_terms[k] += vgg_l_term[k]
+        loss_terms['hdr_loss_s2'] = hdr_loss.item()
+        return hdr_loss + vgg_loss, loss_terms
 
     def optimize_weights(self):
         self.loss = 0
@@ -365,13 +367,14 @@ class self_hdr3E_flow2s_model(hdr3E_flow_model):
                 ev = torch.max(expo_refs[i], expo_refs[2])
                 ldr_f = mutils.pt_hdr_to_ldr_clamp(f, ev)
                 ldr_ci = mutils.pt_hdr_to_ldr_clamp(ci, ev)
-                ref_loss = ref_loss + self.ldr_crit(ldr_ci, ldr_f)
+                vgg_l, _ = self.vgg_crit(ldr_ci, ldr_f)
+                ref_loss = ref_loss + self.ldr_crit(ldr_ci, ldr_f) + vgg_l
         self.loss = self.loss + ref_loss
         self.loss_terms['ref_loss'] = ref_loss.item()
-        loss = self.compute_unsupervised_loss(self.pred2['hdr'])
+        loss,loss_terms = self.compute_unsupervised_loss(self.pred2['hdr'])
         self.loss += loss
-        self.loss_terms['hdr_loss_s2'] = loss.item()
-        hdr_loss = self.compute_unsupervised_loss(self.preds[1]['hdr'])
+        self.loss_terms.update(loss_terms)
+        hdr_loss, _ = self.compute_unsupervised_loss(self.preds[1]['hdr'])
         self.loss = self.loss + self.opt['hdr_w'] * hdr_loss
         self.loss_terms['hdr%d_errs1'%i] = hdr_loss.item()
 
