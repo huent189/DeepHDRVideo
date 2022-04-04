@@ -12,10 +12,10 @@ from utils import image_utils as iutils
 from models import model_utils as mutils
 from models import network_utils as nutils
 from collections import OrderedDict
-from models.hdr3E_flow_model import hdr3E_flow_model
+from models.self_hdr3E_flow_model import self_hdr3E_flow_model
 np.random.seed(0)
 
-class self_hdr3E_flow2s_model(hdr3E_flow_model):
+class self_hdr3E_flow2s_model(self_hdr3E_flow_model):
     @staticmethod
     def modify_commandline_options(parser, is_train=True):
         parser.add_argument('--fnet_name', default='spynet_2triple') # for 3 exposures
@@ -246,7 +246,7 @@ class self_hdr3E_flow2s_model(hdr3E_flow_model):
         self.pred2['log_hdr'] = eutils.pt_mulog_transform(self.pred2['hdr'].clamp(0, 1), mu)
 
     def prepare_inputs(self, data):
-        hdr3E_flow_model.prepare_inputs(self, data)
+        self_hdr3E_flow_model.prepare_inputs(self, data)
         
         # for Stage 2
         expms2 = []

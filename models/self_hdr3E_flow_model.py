@@ -101,11 +101,14 @@ class self_hdr3E_flow_model(hdr2E_model):
         expos = data['expos'].view(-1, self.nframes, 1, 1).split(1, 1)
         # HDR images
         hdrs, log_hdrs = [], []
-
+        reinit_hdr = not ('hdr_2' in data)
+            
         for i in range(2, self.nframes-2):
+            if reinit_hdr:
+                data['hdr_%d' % i] = mutils.pt_ldr_to_hdr(data['ldr_%d'%i], expos[i])
             hdrs.append(data['hdr_%d' % i])
             log_hdrs.append(eutils.pt_mulog_transform(data['hdr_%d' % i], self.mu))
-       
+    
         # LDR images
         ldrs, l2hdrs = [], []
         for i in range(self.nframes):
@@ -377,6 +380,11 @@ class self_hdr3E_flow_model(hdr2E_model):
         loss_terms['hdr_loss'] =  hdr_loss.item()
         # loss_terms['vgg_loss'] =  vgg_loss.item()
         loss_terms['ref_loss'] =  ref_loss.item()
+        loss_terms['flow_loss'] = 0
+        for i in range(1, 5):
+            loss_terms['flow_loss'] = loss_terms['flow_loss'] + self.tv_loss(self.fpred[f'flow{i}'])
+        loss = loss_terms['flow_loss']  + loss
+        loss_terms['flow_loss'] = loss_terms['flow_loss'].item()
         self.loss = loss
         self.loss_terms = loss_terms
     def optimize_weights(self):
@@ -447,7 +455,7 @@ class self_hdr3E_flow_model(hdr2E_model):
 
         visuals += [data['log_hdrs'][self.hdr_mid], pred['log_hdr']]
         ref = [eutils.pt_mulog_transform(r) for r in self.stage1_ref['hdr_warps']] 
-        visuals + ref
+        visuals += ref
         diff = eutils.pt_cal_diff_map(self.pred['log_hdr'].detach(), data['log_hdrs'][self.hdr_mid])
         visuals.append(eutils.pt_colormap(diff))
 

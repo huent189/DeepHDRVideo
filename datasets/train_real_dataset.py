@@ -86,10 +86,10 @@ class train_real_dataset(tog13_online_align_dataset):
                 item['ref_ldr%d' % (i - c_idx+2)] = img[pos[0] : pos[0] + 256, pos[1] : pos[1] + 256]
                 ref_expos.append(exposures[i])
 
-        hdr_start, hdr_end = 2, self.nframes - 2
-        for i in range(hdr_start, hdr_end):
-            hdr = iutils.ldr_to_hdr(item['ldr_%d'%i], exposures[i])
-            item['hdr_%d' % i] = hdr
+        # hdr_start, hdr_end = 2, self.nframes - 2
+        # for i in range(hdr_start, hdr_end):
+        #     hdr = iutils.ldr_to_hdr(item['ldr_%d'%i], exposures[i])
+        #     item['hdr_%d' % i] = hdr
 
         origin_hw = (img.shape[0], img.shape[1])
         item = self.post_process(item, img_paths)
