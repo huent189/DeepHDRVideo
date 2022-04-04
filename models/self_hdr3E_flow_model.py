@@ -62,6 +62,7 @@ class self_hdr3E_flow_model(hdr2E_model):
         if self.is_train: # Criterion
             self.config_optimizers(opt, log)
         self.config_criterions(opt, log)
+        self.recon_crit = torch.nn.L1Loss()
 
         self.load_checkpoint(log)
         self.backward_grid = {}
@@ -360,12 +361,12 @@ class self_hdr3E_flow_model(hdr2E_model):
                 ev = torch.max(ev_refs[i], ev_refs[2])
                 ldr_f = mutils.pt_hdr_to_ldr_clamp(f, ev)
                 ldr_ci = mutils.pt_hdr_to_ldr_clamp(ci, ev)
-                ref_loss = ref_loss + self.ldr_crit(ldr_ci, ldr_f)
+                ref_loss = ref_loss + self.recon_crit(ldr_ci, ldr_f)
         loss = loss + ref_loss
         for ref, ev in zip(hdr_refs[1:-1], ev_refs[1:-1]):
             pred = (pred_hdr * ev).clip(1e-8, 1) ** (1/ 2.2)
             ref = (ref * ev).clip(1e-8, 1) ** (1/ 2.2)
-            tmp =  self.ldr_crit(ref, pred) * weight * self.opt['hdr_w']
+            tmp =  self.recon_crit(ref, pred) * weight * self.opt['hdr_w']
             hdr_loss = hdr_loss + tmp
             # if vgg:
             #     vgg_l, vgg_l_term = self.vgg_crit(pred, ref)

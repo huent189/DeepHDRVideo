@@ -89,7 +89,6 @@ class self_hdr3E_flow2s_model(self_hdr3E_flow_model):
         if self.is_train: # Criterion
             self.config_optimizers(opt, log)
         self.config_criterions(opt, log)
-
         self.load_checkpoint(log)
         self.backward_grid = {}
         torch.manual_seed(0)
@@ -340,7 +339,7 @@ class self_hdr3E_flow2s_model(self_hdr3E_flow_model):
         for ref, ev in zip(ldr_refs, ev_refs):
             # norm = ev ** (1/2.2)
             pred = (pred_hdr * ev).clip(1e-8, 1) ** (1/ 2.2)
-            tmp =  self.ldr_crit(ref, pred) * weight * self.opt['hdr_w']
+            tmp =  self.recon_crit(ref, pred) * weight * self.opt['hdr_w']
             hdr_loss = hdr_loss + tmp
             if self.opt['vgg_l'] and vgg:
                 vgg_l, vgg_l_term = self.vgg_crit(pred, ref)
@@ -368,7 +367,7 @@ class self_hdr3E_flow2s_model(self_hdr3E_flow_model):
                 ldr_f = mutils.pt_hdr_to_ldr_clamp(f, ev)
                 ldr_ci = mutils.pt_hdr_to_ldr_clamp(ci, ev)
                 vgg_l, _ = self.vgg_crit(ldr_ci, ldr_f)
-                ref_loss = ref_loss + self.ldr_crit(ldr_ci, ldr_f) + vgg_l
+                ref_loss = ref_loss + self.recon_crit(ldr_ci, ldr_f) + vgg_l
         self.loss = self.loss + ref_loss
         self.loss_terms['ref_loss'] = ref_loss.item()
         loss,loss_terms = self.compute_unsupervised_loss(self.pred2['hdr'])
